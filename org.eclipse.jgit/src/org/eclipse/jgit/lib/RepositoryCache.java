@@ -63,7 +63,14 @@ import org.slf4j.LoggerFactory;
 
 /** Cache of active {@link Repository} instances. */
 public class RepositoryCache {
-	private static final RepositoryCache cache = new RepositoryCache();
+	private static RepositoryCache cache;
+
+	private static synchronized RepositoryCache cache() {
+		if (cache == null) {
+			cache = new RepositoryCache();
+		}
+		return cache;
+	}
 
 	private final static Logger LOG = LoggerFactory
 			.getLogger(RepositoryCache.class);
@@ -110,7 +117,7 @@ public class RepositoryCache {
 	 */
 	public static Repository open(final Key location, final boolean mustExist)
 			throws IOException {
-		return cache.openRepository(location, mustExist);
+		return cache().openRepository(location, mustExist);
 	}
 
 	/**
@@ -130,7 +137,7 @@ public class RepositoryCache {
 	public static void register(final Repository db) {
 		if (db.getDirectory() != null) {
 			FileKey key = FileKey.exact(db.getDirectory(), db.getFS());
-			cache.registerRepository(key, db);
+			cache().registerRepository(key, db);
 		}
 	}
 
@@ -146,7 +153,7 @@ public class RepositoryCache {
 	public static void close(@NonNull final Repository db) {
 		if (db.getDirectory() != null) {
 			FileKey key = FileKey.exact(db.getDirectory(), db.getFS());
-			cache.unregisterAndCloseRepository(key);
+			cache().unregisterAndCloseRepository(key);
 		}
 	}
 
@@ -181,7 +188,7 @@ public class RepositoryCache {
 	 * @since 4.1
 	 */
 	public static void unregister(Key location) {
-		cache.unregisterRepository(location);
+		cache().unregisterRepository(location);
 	}
 
 	/**
@@ -189,7 +196,7 @@ public class RepositoryCache {
 	 * @since 4.1
 	 */
 	public static Collection<Key> getRegisteredKeys() {
-		return cache.getKeys();
+		return cache().getKeys();
 	}
 
 	static boolean isCached(@NonNull Repository repo) {
@@ -198,20 +205,20 @@ public class RepositoryCache {
 			return false;
 		}
 		FileKey key = new FileKey(gitDir, repo.getFS());
-		return cache.cacheMap.get(key) == repo;
+		return cache().cacheMap.get(key) == repo;
 	}
 
 	/** Unregister all repositories from the cache. */
 	public static void clear() {
-		cache.clearAll();
+		cache().clearAll();
 	}
 
 	static void clearExpired() {
-		cache.clearAllExpired();
+		cache().clearAllExpired();
 	}
 
 	static void reconfigure(RepositoryCacheConfig repositoryCacheConfig) {
-		cache.configureEviction(repositoryCacheConfig);
+		cache().configureEviction(repositoryCacheConfig);
 	}
 
 	private final ConcurrentHashMap<Key, Repository> cacheMap;
@@ -247,7 +254,7 @@ public class RepositoryCache {
 				@Override
 				public void run() {
 					try {
-						cache.clearAllExpired();
+						cache().clearAllExpired();
 					} catch (Throwable e) {
 						LOG.error(e.getMessage(), e);
 					}
