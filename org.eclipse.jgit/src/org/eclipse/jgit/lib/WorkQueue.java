@@ -51,11 +51,11 @@ import java.util.concurrent.ThreadFactory;
  * Simple work queue to run tasks in the background
  */
 class WorkQueue {
-	private static final ScheduledThreadPoolExecutor executor;
+	private static ScheduledThreadPoolExecutor executor;
 
-	static final Object executorKiller;
+	static Object executorKiller;
 
-	static {
+	private static void initializeExecutor() {
 		// To support garbage collection, start our thread but
 		// swap out the thread factory. When our class is GC'd
 		// the executorKiller will finalize and ask the executor
@@ -93,7 +93,10 @@ class WorkQueue {
 		};
 	}
 
-	static ScheduledThreadPoolExecutor getExecutor() {
+	static synchronized ScheduledThreadPoolExecutor getExecutor() {
+		if (executor == null) {
+			initializeExecutor();
+		}
 		return executor;
 	}
 }
